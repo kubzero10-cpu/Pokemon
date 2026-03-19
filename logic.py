@@ -3,29 +3,38 @@ import requests
 
 
 class Pokemon:
-    pokemons = {}
+    pokemons = {}  # Словарь для хранения всех покемонов
 
     # Инициализация объекта (конструктор)
     def __init__(self, pokemon_trainer):
-
         self.pokemon_trainer = pokemon_trainer
-
         self.pokemon_number = randint(1, 1000)
         self.img = self.get_img()
         self.name = self.get_name()
-        self.type = self.get_type()  #  новое свойство
-
+        self.type = self.get_type()
+        self.hp = randint(200, 400)
+        self.power = randint(30, 60)
         Pokemon.pokemons[pokemon_trainer] = self
 
-    # Метод для получения картинки покемона через API
+    # Исправленный метод для получения картинки покемона через API
     def get_img(self):
         url = f'https://pokeapi.co/api/v2/pokemon/{self.pokemon_number}'
         response = requests.get(url)
         if response.status_code == 200:
             data = response.json()
-            return (data['sprites']["other"]['dream world']["front_default"])
-        else:
-            return "https://static.wikia.nocookie.net/pokemon/images/0/0d/025Pikachu.png/revision/latest/scale-to-width-down/1000?cb=20181020165701&path-prefix=ru"
+            # Пробуем разные варианты получения картинки
+            try:
+                if 'dream_world' in data['sprites']['other']:
+                    img_url = data['sprites']['other']['dream_world']['front_default']
+                    if img_url:
+                        return img_url
+
+
+            except (KeyError, TypeError):
+                pass  # Если что-то пошло не так, используем запасную картинку
+
+        #картинка Пикачу
+        return "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/25.png"
 
     # Метод для получения имени покемона через API
     def get_name(self):
@@ -37,7 +46,7 @@ class Pokemon:
         else:
             return "Pikachu"
 
-    # Новый метод для получения типа покемона
+    # Метод для получения типа покемона
     def get_type(self):
         url = f'https://pokeapi.co/api/v2/pokemon/{self.pokemon_number}'
         response = requests.get(url)
@@ -49,8 +58,60 @@ class Pokemon:
 
     # Метод класса для получения информации
     def info(self):
-        return f"Имя твоего покеомона: {self.name}\nТип: {self.type}"
+        return f"""Имя твоего покемона: {self.name}
+        Тип: {self.type}
+        HP: {self.hp}
+        Сила: {self.power}
+        Тренер: {self.pokemon_trainer}"""
 
     # Метод класса для получения картинки покемона
     def show_img(self):
         return self.img
+
+    # Метод атаки
+    def attack(self, enemy):
+        # Проверка на волшебника
+        if isinstance(enemy, Wizard):
+            chance = randint(1, 5)
+            if chance == 1:
+                return f"✨ {enemy.name} применил магический щит! Атака не удалась!"
+
+        # Проверка здоровья
+        if self.hp <= 0:
+            return f"{self.name} не может атаковать, он проиграл!"
+        if enemy.hp <= 0:
+            return f"{enemy.name} уже побежден!"
+
+        # Нанесение урона
+        if enemy.hp > self.power:
+            enemy.hp -= self.power
+            return f"⚔️ Сражение {self.pokemon_trainer} с {enemy.pokemon_trainer}\n{self.name} нанес {self.power} урона!"
+        else:
+            enemy.hp = 0
+            return f"🏆 Победа {self.pokemon_trainer} над {enemy.pokemon_trainer}!"
+
+
+class Wizard(Pokemon):
+    def __init__(self, pokemon_trainer):
+        super().__init__(pokemon_trainer)
+
+    def attack(self, enemy):
+        return super().attack(enemy)
+
+    def info(self):
+        return f"✨ Волшебник\n" + super().info()
+
+
+class Fighter(Pokemon):
+    def __init__(self, pokemon_trainer):
+        super().__init__(pokemon_trainer)
+
+    def attack(self, enemy):
+        super_power = randint(5, 15)
+        self.power += super_power
+        result = super().attack(enemy)
+        self.power -= super_power
+        return result + f"\n💪 Боец применил супер атаку силой: {super_power}"
+
+    def info(self):
+        return f"⚡ Боец\n" + super().info()
